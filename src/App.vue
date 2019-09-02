@@ -1,6 +1,6 @@
 <template>
   <div id="app">
-
+    项目构建
   </div>
 </template>
 
