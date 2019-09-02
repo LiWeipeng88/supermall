@@ -1,4 +1,4 @@
-# supermall
+# supermall(购物商城)
 
 ## Project setup
 ```
