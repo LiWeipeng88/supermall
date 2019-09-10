@@ -3,19 +3,22 @@
     <NavBar class="home-nav">
       <div slot="center">购物街</div>
     </NavBar>
-    <HomeSwiper :banners="banners" />
-    <HomeRecommend :recommends="recommends" />
-    <feature-view/>
-    <tab-control class="tab-control"
-                   :titles="['流行', '新款', '精选']"
-                   @tabClick="tabClick"/>
-      <good-list :goods="showGoods"/>
+    <Scroll class="content" ref="scroll" :probe-type='3' :pull-up-load="true" @scroll="contentScroll" >
+      <HomeSwiper :banners="banners" />
+      <HomeRecommend :recommends="recommends" />
+      <feature-view />
+      <tab-control class="tab-control" :titles="['流行', '新款', '精选']" @tabClick="tabClick" />
+      <good-list :goods="showGoods" />
+    </Scroll>
+    <BackTop @click.native="BackTopClick" v-show="isShowBackTop"></BackTop>
   </div>
 </template>
 <script>
 import NavBar from "components/common/navbar/NavBar";
 import TabControl from "components/content/tabControl/TabControl";
 import GoodList from "components/content/goods/GoodsList";
+import Scroll from "components/common/scroll/Scroll";
+import BackTop from "components/content/backTop/BackTop";
 
 import HomeSwiper from "views/home/childComps/HomeSwiper";
 import HomeRecommend from "./childComps/HomeRecommend";
@@ -33,7 +36,8 @@ export default {
         new: { page: 0, list: [] },
         sell: { page: 0, list: [] }
       },
-      currentType: "pop"
+      currentType: "pop",
+      isShowBackTop:false
     };
   },
   components: {
@@ -42,13 +46,15 @@ export default {
     HomeRecommend,
     TabControl,
     GoodList,
-    FeatureView
+    FeatureView,
+    Scroll,
+    BackTop
   },
   computed: {
-      showGoods() {
-        return this.goods[this.currentType].list
-      }
-    },
+    showGoods() {
+      return this.goods[this.currentType].list;
+    }
+  },
   created() {
     // 1.请求多个数据
     this.getHomeMultidata();
@@ -75,29 +81,55 @@ export default {
           break;
       }
     },
+    contentScroll(position){
+      this.isShowBackTop = (- position.y) > 700
+    },
+    // loadMore(){
+    //   console.log('上拉加载更多')
+    //   this.getHomeGoods(this.currentType)
+    // },
+
     /**
-       * 网络请求相关的方法
-       */
-      getHomeMultidata() {
-        getHomeMultidata().then(res => {
-          // this.result = res;
-          this.banners = res.data.banner.list;
-          this.recommends = res.data.recommend.list;
-        })
-      },
-      getHomeGoods(type) {
-        const page = this.goods[type].page + 1
-        getHomeGoods(type, page).then(res => {
-          this.goods[type].list.push(...res.data.list)
-          this.goods[type].page += 1
-        })
-      }
+     * 网络请求相关的方法
+     */
+    getHomeMultidata() {
+      getHomeMultidata().then(res => {
+        // this.result = res;
+        this.banners = res.data.banner.list;
+        this.recommends = res.data.recommend.list;
+      });
+    },
+    getHomeGoods(type) {
+      const page = this.goods[type].page + 1;
+      getHomeGoods(type, page).then(res => {
+        this.goods[type].list.push(...res.data.list);
+        this.goods[type].page += 1;
+        // 清除上次下拉加载更多
+        // this.$refs.scroll.finishPullUp()
+      });
+    },
+    BackTopClick(){
+     this.$refs.scroll.scrollTo(0, 0 )
+    }
   }
 };
 </script>
-<style scope>
+<style scoped>
+#home {
+  height: 100vh;
+  position: relative;
+}
 .home-nav {
   background-color: #ff5777;
   color: #fff;
+}
+.content {
+  /* height: 300px; */
+  overflow: hidden;
+  position: absolute;
+  top: 0px;
+  bottom: 49px;
+  left: 0;
+  right: 0;
 }
 </style>
