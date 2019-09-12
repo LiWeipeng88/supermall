@@ -63,8 +63,26 @@ export default {
     this.getHomeGoods("pop");
     this.getHomeGoods("new");
     this.getHomeGoods("sell");
+    
+  },
+  mounted(){
+    // 监听item的图片加载完成
+    const refresh = this.debounce(this.$refs.scroll.refresh)
+    this.$bus.$on('itemImgLoad',()=>{
+      refresh()
+    })
   },
   methods: {
+    // 防抖动函数
+    debounce(func, delay){
+      let timer = null
+      return function (...args) {
+        if (timer) clearTimeout(timer)
+        timer = setTimeout ( ()=>{
+          func.apply(this, args)
+        }, delay)
+      }
+    },
     /**
      * 事件监听相关的方法
      */
@@ -84,10 +102,6 @@ export default {
     contentScroll(position){
       this.isShowBackTop = (- position.y) > 700
     },
-    // loadMore(){
-    //   console.log('上拉加载更多')
-    //   this.getHomeGoods(this.currentType)
-    // },
 
     /**
      * 网络请求相关的方法
@@ -104,8 +118,6 @@ export default {
       getHomeGoods(type, page).then(res => {
         this.goods[type].list.push(...res.data.list);
         this.goods[type].page += 1;
-        // 清除上次下拉加载更多
-        // this.$refs.scroll.finishPullUp()
       });
     },
     BackTopClick(){
