@@ -60,8 +60,4 @@
   .active span {
     border-bottom: 3px solid var(--color-tint);
   }
-    .tab-control{
-      position: sticky;
-      top: 44px;
-    }
 </style>
