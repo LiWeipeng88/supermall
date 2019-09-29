@@ -1,12 +1,14 @@
 <template>
 	<div id="detail">
-		<DetailNavBar class="detail-nav"></DetailNavBar>
-		<Scroll class="content">
+		<DetailNavBar class="detail-nav" @titleClick="titleClick" ref="NavBarIndex"></DetailNavBar>
+		<Scroll class="content" ref="scroll" @scroll="contentScroll" :probe-type="3">
 			<DetailSwiper :topImages="topImages"></DetailSwiper>
 			<DetailBaseInfo :goods="goods"></DetailBaseInfo>
 			<DetailShopInfo :shop="shop"></DetailShopInfo>
-			<DetailImageInfo :detailInfo="detailInfo"></DetailImageInfo>
-			<DetailParamsInfo :paramInfo="itemParams"></DetailParamsInfo>
+			<DetailImageInfo :detailInfo="detailInfo" @detailImageLoad="detailImageLoad"></DetailImageInfo>
+			<DetailParamsInfo :paramInfo="itemParams" ref="params"></DetailParamsInfo>
+			<DetailCommentInfo :commentInfo="commentInfo" ref="comment"></DetailCommentInfo>
+			<GoodsList :goods="recommends" ref="recommend"></GoodsList>
 		</Scroll>
 	</div>
 </template>
@@ -18,10 +20,16 @@
 	import DetailShopInfo from './childComps/DetailShopInfo'
 	import DetailImageInfo from './childComps/DetailImageInfo'
 	import DetailParamsInfo from './childComps/DetailParamsInfo'
+	import DetailCommentInfo from './childComps/DetailCommentInfo'
 	
 	import Scroll from "components/common/scroll/Scroll";
 	
-	import {getDetail, Goods, Shop } from 'network/detail.js'
+	import GoodsList from 'components/content/goods/GoodsList'
+	
+	import {getDetail, Goods, Shop, getRecommend } from 'network/detail.js'
+	import {debounce} from 'common/utils'
+
+	import { itemListenerMixin } from 'common/mixin'
 	export default{
 		name:'Detail',
 		components: {
@@ -31,8 +39,11 @@
 			DetailShopInfo,
 			DetailImageInfo,
 			DetailParamsInfo,
-			Scroll
+			DetailCommentInfo,
+			Scroll,
+			GoodsList
 		},
+		mixins:[itemListenerMixin],
 		data() {
 			return {
 				iid: null,
@@ -40,7 +51,12 @@
 				goods:{},
 				shop:{},
 				detailInfo:{},
-				itemParams:{}
+				itemParams:{},
+				commentInfo:{},
+				recommends:[],
+				themeTopYs:[],
+				getThemeTopY:null,
+				currentIndex: 0
 			}
 		},
 		created(){
@@ -60,7 +76,56 @@
 				this.detailInfo = data.detailInfo
 				// 取出参数信息
 				this.itemParams = data.itemParams
+				// 取出评论信息
+				if(data.rate.cRate !==0 ){
+					this.commentInfo = data.rate.list[0]
+				}
+				// this.$nextTick(()=>{
+				// 	
+				// })
 			})
+			getRecommend().then(res =>{
+				this.recommends = res.data.list
+			})
+			this.getThemeTopY = debounce(()=>{
+				this.themeTopYs = []
+				this.themeTopYs.push(0);
+				this.themeTopYs.push(this.$refs.params.$el.offsetTop - 44)
+				this.themeTopYs.push(this.$refs.comment.$el.offsetTop - 44)
+				this.themeTopYs.push(this.$refs.recommend.$el.offsetTop - 44)
+				console.log(this.themeTopYs)
+			},50)
+		},
+		methods: {
+			detailImageLoad() {
+				this.refresh()
+				this.getThemeTopY()
+			},
+			titleClick(index) {
+				// console.log(index)
+				this.$refs.scroll.scrollTo(0, - this.themeTopYs[index], 300)
+			},
+			contentScroll(position){
+				// 获取y值
+				const positionY = - position.y
+				// 将positionY的值和themeTopYs的值作对比
+				length = this.themeTopYs.length
+				for (let i = 0; i<length; i++) {
+					// console.log(i+1)
+					if(this.currentIndex !== i && ((i < length - 1 && positionY >= this.themeTopYs[i] && positionY < this.themeTopYs[i+1]) || (i === length - 1 && positionY >= this.themeTopYs[i] ) )) {
+						this.currentIndex = i
+						// console.log(this.currentIndex)
+						this.$refs.NavBarIndex.currentIndex = this.currentIndex
+					}
+				}
+				// console.log(position)
+			}
+		},
+		mounted(){
+			// console.log('mounted')
+		},
+		destroyed(){
+			this.$bus.$off('itemImgLoad', this.itemImgListener)
 		}
 	}
 </script>

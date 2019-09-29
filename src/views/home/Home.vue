@@ -25,6 +25,7 @@ import FeatureView from "./childComps/FeatureView";
 
 import { getHomeMultidata, getHomeGoods } from "network/home";
 import { debounce } from 'common/utils'
+import { itemListenerMixin } from 'common/mixin'
 export default {
   name: "Home",
   data() {
@@ -43,6 +44,7 @@ export default {
 			saveY:0
     };
   },
+	mixins:[itemListenerMixin],
   components: {
     NavBar,
     HomeSwiper,
@@ -69,11 +71,7 @@ export default {
     
   },
   mounted(){
-    // 监听item的图片加载完成
-    const refresh = debounce(this.$refs.scroll.refresh, 50)
-    this.$bus.$on('itemImgLoad',()=>{
-      refresh()
-    })
+		this.tabClick(0)
   },
   methods: {
     /**
@@ -91,8 +89,12 @@ export default {
           this.currentType = "sell";
           break;
       }
-			this.$refs.tabControl1.currentIndex = index;
-			this.$refs.TabControl2.currentIndex = index;
+			
+			if (this.$refs.tabControl1 !== undefined){
+				this.$refs.tabControl1.currentIndex = index;
+				this.$refs.tabControl2.currentIndex = index;
+			}
+			
     },
     contentScroll(position){
 			// 判断backTop是否显示
@@ -140,8 +142,11 @@ export default {
 		this.$refs.scroll.refresh()
 	},
 	deactivated(){
+		// 1.保存Y值
 		this.saveY = this.$refs.scroll.getScrollY()
 		// console.log(this.saveY)
+		// 2. 取消全局事件的监听
+		this.$bus.$off('itemImgLoad', this.itemImgListener )
 	}
 };
 </script>
